@@ -1,6 +1,12 @@
 # Subtext convenience targets.
 # Override registry/owner/tag: `make images REGISTRY=ghcr.io OWNER=zsigisti TAG=v1`
 
+# Resolve pnpm even when it isn't on PATH (e.g. installed via `npm i -g pnpm`
+# into npm's global prefix, which isn't always on the interactive PATH), and put
+# its directory on PATH for every recipe so nested `pnpm --filter` calls resolve.
+PNPM := $(shell command -v pnpm 2>/dev/null || echo "$$(npm config get prefix 2>/dev/null)/bin/pnpm")
+export PATH := $(dir $(PNPM)):$(PATH)
+
 REGISTRY ?= ghcr.io
 OWNER    ?= OWNER
 TAG      ?= latest
@@ -15,27 +21,27 @@ help: ## Show this help
 # ---- Local development (no Docker) ----
 .PHONY: setup
 setup: ## Install deps, create env files, set up + seed the dev DB (SQLite)
-	pnpm install
+	$(PNPM) install
 	[ -f apps/server/.env ] || cp .env.example apps/server/.env
 	[ -f apps/web/.env ] || printf 'VITE_API_URL="http://localhost:3000"\n' > apps/web/.env
-	pnpm db:push
-	pnpm seed
+	$(PNPM) db:push
+	$(PNPM) seed
 
 .PHONY: dev
 dev: ## Run server + web together (http://localhost:5173)
-	pnpm dev
+	$(PNPM) dev
 
 .PHONY: seed
 seed: ## (Re)seed the demo account and scenarios
-	pnpm seed
+	$(PNPM) seed
 
 .PHONY: typecheck
 typecheck: ## tsc --noEmit across every package
-	pnpm typecheck
+	$(PNPM) typecheck
 
 .PHONY: build
 build: ## Production build of all packages
-	pnpm build
+	$(PNPM) build
 
 # ---- Prod-like local stack (Docker Compose: Postgres + API + web) ----
 .PHONY: compose-up
