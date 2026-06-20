@@ -12,19 +12,20 @@
   --font-reading: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Calm light palette (muted, soft). RGB triplets for <alpha-value>. */
-  --bg: 247 246 243; /* warm off-white */
+  --bg: 246 245 242;
   --surface: 255 255 255;
   --surface-2: 244 242 238;
-  --border: 226 222 215;
-  --ink: 38 40 46; /* soft near-black */
-  --muted: 110 114 124;
-  --brand: 90 122 168; /* muted slate-blue */
-  --brand-soft: 224 232 243;
-  --accent: 138 122 168; /* gentle lavender */
-  --positive: 92 140 116; /* sage */
+  --border: 228 224 217;
+  --ink: 33 35 42;
+  --muted: 108 112 122;
+  --brand: 84 116 164;
+  --brand-soft: 226 234 245;
+  --accent: 142 124 176;
+  --positive: 88 142 116;
+  --warn: 192 138 96;
+  --ring: var(--brand);
 }
 
-/* Dyslexia-friendly reading font (Atkinson Hyperlegible). */
 :root[data-font="dyslexia"] {
   --font-sans: "Atkinson Hyperlegible", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-reading: "Atkinson Hyperlegible", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -32,35 +33,34 @@
   word-spacing: 0.04em;
 }
 
-/* Dark, low-glare. */
 :root[data-theme="dark"] {
-  --bg: 23 25 30;
-  --surface: 32 35 42;
-  --surface-2: 39 43 51;
-  --border: 56 61 71;
-  --ink: 232 234 238;
-  --muted: 158 164 176;
-  --brand: 138 168 210;
-  --brand-soft: 44 56 74;
-  --accent: 178 162 208;
-  --positive: 132 184 156;
+  --bg: 20 22 27;
+  --surface: 30 33 40;
+  --surface-2: 38 42 50;
+  --border: 54 59 69;
+  --ink: 233 235 239;
+  --muted: 156 162 174;
+  --brand: 134 166 214;
+  --brand-soft: 42 54 73;
+  --accent: 180 164 212;
+  --positive: 130 184 154;
+  --warn: 210 158 112;
 }
 
-/* High contrast (AAA-leaning), works over light or dark. */
 :root[data-theme="contrast"] {
   --bg: 255 255 255;
   --surface: 255 255 255;
-  --surface-2: 245 245 245;
+  --surface-2: 244 244 244;
   --border: 0 0 0;
   --ink: 0 0 0;
-  --muted: 40 40 40;
-  --brand: 22 60 120;
-  --brand-soft: 222 232 248;
-  --accent: 90 40 130;
-  --positive: 20 90 60;
+  --muted: 38 38 38;
+  --brand: 19 54 110;
+  --brand-soft: 220 230 248;
+  --accent: 86 36 126;
+  --positive: 18 86 56;
+  --warn: 140 70 10;
 }
 
-/* Text size scale — sets root font size; everything uses rem. */
 :root[data-textsize="s"] { font-size: 15px; }
 :root[data-textsize="m"] { font-size: 17px; }
 :root[data-textsize="l"] { font-size: 19px; }
@@ -68,24 +68,60 @@
 
 @layer base {
   body {
-    @apply bg-bg text-ink font-sans antialiased;
+    @apply text-ink font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04";
+    /* Soft, layered ambient background — barely-there brand wash. */
+    background-color: rgb(var(--bg));
+    background-image:
+      radial-gradient(60rem 60rem at 110% -10%, rgb(var(--brand) / 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 0%, rgb(var(--accent) / 0.08), transparent 55%);
+    background-attachment: fixed;
   }
 
-  /* Strong, always-visible keyboard focus. */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand ring-offset-2;
+    @apply outline-none ring-2 ring-offset-2;
+    --tw-ring-color: rgb(var(--ring));
     --tw-ring-offset-color: rgb(var(--bg));
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
   }
 
   h1, h2, h3 { @apply text-ink; }
+  ::selection { background: rgb(var(--brand) / 0.22); }
+
+  /* Calmer scrollbars. */
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--border)) transparent; }
 }
 
-/* Respect reduced motion — both OS pref and the in-app toggle. */
+/* ───────────────────────────────────────────────────────────────
+ * Motion. Every entrance keyframe ends in the visible state, so when
+ * motion is reduced (OS pref OR the in-app toggle) the near-zero
+ * duration just snaps to the final frame — content never gets stuck.
+ * ─────────────────────────────────────────────────────────────── */
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes slide-in-right { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.8); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes float-soft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+@layer utilities {
+  .animate-fade-up { animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-fade-in { animation: fade-in 0.4s ease both; }
+  .animate-scale-in { animation: scale-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-slide-in { animation: slide-in-right 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pop { animation: pop 0.32s ease both; }
+  .animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+  .animate-float { animation: float-soft 5s ease-in-out infinite; }
+  .grow-x { transform-origin: left; animation: grow-x 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
@@ -94,44 +130,86 @@
 :root[data-motion="reduced"] *::before,
 :root[data-motion="reduced"] *::after {
   animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
 
-/* Optional reading ruler / line focus — a soft band that follows nothing
- * but dims the page edges to reduce visual load while reading results. */
-:root[data-ruler="on"] .reading-focus {
-  position: relative;
-}
-:root[data-ruler="on"] .reading-focus > * + * {
-  position: relative;
+/* Reading focus: gently dim everything except the hovered/focused card. */
+:root[data-ruler="on"] .reading-focus:hover > *:not(:hover),
+:root[data-ruler="on"] .reading-focus:focus-within > *:not(:focus-within) {
+  opacity: 0.55;
+  filter: saturate(0.85);
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-border bg-surface shadow-calm;
+    @apply rounded-2xl border border-border bg-surface;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.12);
   }
+  .card-hover {
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgb(var(--brand) / 0.4);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.05), 0 22px 48px -22px rgb(var(--brand) / 0.45);
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-      font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium;
+    transition: transform 0.12s ease, background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
   }
+  .btn:active { transform: translateY(1px) scale(0.99); }
+  .btn:disabled { @apply cursor-not-allowed opacity-60; transform: none; }
   .btn-primary {
-    @apply btn bg-brand text-white hover:bg-brand/90;
+    @apply btn text-white;
+    background-image: linear-gradient(135deg, rgb(var(--brand)), rgb(var(--accent)));
+    box-shadow: 0 6px 18px -8px rgb(var(--brand) / 0.7);
   }
-  .btn-ghost {
-    @apply btn bg-surface-2 text-ink hover:bg-border/60;
-  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 26px -8px rgb(var(--brand) / 0.85); }
+  .btn-ghost { @apply btn bg-surface-2 text-ink; }
+  .btn-ghost:hover:not(:disabled) { background-color: rgb(var(--border) / 0.6); }
   .btn-quiet {
-    @apply btn px-3 py-1.5 text-sm text-muted hover:text-ink hover:bg-surface-2;
+    @apply btn px-3 py-1.5 text-sm text-muted;
   }
+  .btn-quiet:hover:not(:disabled) { @apply text-ink bg-surface-2; }
+
   .field {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink
-      placeholder:text-muted focus:border-brand;
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-ink placeholder:text-muted;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field:focus {
+    @apply outline-none;
+    border-color: rgb(var(--brand));
+    box-shadow: 0 0 0 4px rgb(var(--brand) / 0.14);
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-border
-      bg-surface-2 px-3 py-1 text-sm text-muted;
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-3 py-1 text-sm text-muted;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   }
-  .label {
-    @apply block text-sm font-medium text-ink mb-1.5;
+  .chip-interactive { @apply cursor-pointer; }
+  .chip-interactive:hover { @apply text-ink; border-color: rgb(var(--brand) / 0.5); }
+  .label { @apply block text-sm font-medium text-ink mb-1.5; }
+
+  /* Brand wordmark gradient. */
+  .text-gradient {
+    background-image: linear-gradient(120deg, rgb(var(--brand)), rgb(var(--accent)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Shimmer skeleton block. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-surface-2;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.06), transparent);
+    animation: shimmer 1.5s infinite;
   }
 }

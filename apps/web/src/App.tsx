@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { APP } from "@subtext/shared";
 import { useSession } from "./lib/useSession";
+import { Logo } from "./components/Logo";
 import { AccessibilityPanel } from "./a11y/AccessibilityPanel";
 import { AccountMenu } from "./features/auth/AccountMenu";
 import { DecodeView } from "./features/decode/DecodeView";
@@ -31,17 +32,12 @@ export function App() {
         Skip to content
       </a>
 
-      <header className="border-b border-border bg-surface/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border bg-surface/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-white"
-            >
-              S
-            </span>
+            <Logo size={38} />
             <div>
-              <div className="font-semibold leading-tight">{APP.name}</div>
+              <div className="font-semibold leading-tight tracking-tight">{APP.name}</div>
               <div className="text-xs text-muted">{APP.tagline}</div>
             </div>
           </div>
@@ -77,7 +73,10 @@ export function App() {
                 >
                   {n.label}
                   {view === n.id && (
-                    <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-brand" />
+                    <span
+                      className="animate-fade-in absolute inset-x-3 -bottom-px h-0.5 rounded-full"
+                      style={{ backgroundImage: "linear-gradient(90deg, rgb(var(--brand)), rgb(var(--accent)))" }}
+                    />
                   )}
                 </button>
               </li>
@@ -87,10 +86,13 @@ export function App() {
       </header>
 
       <main id="main" className="mx-auto max-w-5xl px-4 py-8">
-        {view === "decode" && <DecodeView />}
-        {view === "compose" && <ComposeView />}
-        {view === "library" && <LibraryView />}
-        {view === "profile" && <ProfileView />}
+        {/* key on view => a fresh fade-in each time the tab changes */}
+        <div key={view} className="animate-fade-in">
+          {view === "decode" && <DecodeView />}
+          {view === "compose" && <ComposeView />}
+          {view === "library" && <LibraryView />}
+          {view === "profile" && <ProfileView />}
+        </div>
       </main>
 
       <footer className="mx-auto max-w-5xl px-4 pb-10 pt-4 text-sm text-muted">

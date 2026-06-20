@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-/** Copies text to the clipboard with a brief, screen-reader-announced confirm. */
+/** Copies text to the clipboard with an animated, screen-reader-announced confirm. */
 export function CopyButton({
   text,
   label = "Copy",
@@ -21,8 +21,15 @@ export function CopyButton({
   }
 
   return (
-    <button type="button" className="btn-quiet" onClick={onCopy}>
-      <span aria-hidden="true">{copied ? "✓" : "⧉"}</span>
+    <button
+      type="button"
+      className="btn-quiet"
+      onClick={onCopy}
+      style={copied ? { color: "rgb(var(--positive))" } : undefined}
+    >
+      <span key={copied ? "y" : "n"} aria-hidden="true" className="animate-pop inline-block">
+        {copied ? "✓" : "⧉"}
+      </span>
       <span>{copied ? "Copied" : label}</span>
       <span className="sr-only" role="status" aria-live="polite">
         {copied ? "Copied to clipboard" : ""}
