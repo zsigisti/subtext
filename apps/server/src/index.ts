@@ -20,6 +20,9 @@ async function main() {
           : { target: "pino-pretty", options: { translateTime: "HH:MM:ss" } },
     },
     routerOptions: { maxParamLength: 5000 },
+    // Keep the dev console calm: skip per-request "incoming/completed" logs
+    // (startup, errors, and explicit logs still show).
+    disableRequestLogging: true,
   });
 
   await server.register(cors, {
@@ -41,6 +44,13 @@ async function main() {
       },
     } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"],
   });
+
+  // Friendly root so hitting the API port directly isn't a bare 404.
+  server.get("/", async () => ({
+    name: "Subtext API",
+    message:
+      "This is the Subtext API. The app's web UI runs separately (http://localhost:5173 in dev). API lives under /trpc; health at /health.",
+  }));
 
   server.get("/health", async () => ({
     ok: true,
