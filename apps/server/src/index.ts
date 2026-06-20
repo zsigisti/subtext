@@ -19,7 +19,7 @@ async function main() {
           ? undefined
           : { target: "pino-pretty", options: { translateTime: "HH:MM:ss" } },
     },
-    maxParamLength: 5000,
+    routerOptions: { maxParamLength: 5000 },
   });
 
   await server.register(cors, {
