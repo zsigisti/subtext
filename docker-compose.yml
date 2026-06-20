@@ -1,0 +1,58 @@
+# Prod-like local stack: Postgres + API + web (nginx).
+# Browse to http://localhost:8080 — nginx serves the SPA and proxies the API.
+#
+#   cp .env.docker.example .env
+#   docker compose up --build
+#
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-subtext}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-subtext}
+      POSTGRES_DB: ${POSTGRES_DB:-subtext}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-subtext}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      args:
+        DATABASE_PROVIDER: postgresql
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-subtext}:${POSTGRES_PASSWORD:-subtext}@db:5432/${POSTGRES_DB:-subtext}?schema=public
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_MOCK: ${GEMINI_MOCK:-1}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-compose-secret-change-me}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:8080}
+      COOKIE_SECURE: "false"
+      SEED_ON_START: ${SEED_ON_START:-true}
+      PORT: "3000"
+      NODE_ENV: production
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      SERVER_UPSTREAM: server:3000
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  db-data:

@@ -87,25 +87,27 @@ End-to-end type safety from DB → server → client with **zero codegen**:
 
 ---
 
-## Run it
+## Run it (local dev — the easy path)
 
-Requirements: **Node ≥ 20** and **pnpm**.
+Requirements: **Node ≥ 20** and **pnpm**. Defaults work **fully offline** (SQLite
++ mock AI), no API key needed.
 
 ```bash
-# 1. Install
+make setup   # install deps, create .env files, set up + seed the SQLite DB
+make dev     # run server + web together
+```
+
+<details>
+<summary>…or without <code>make</code></summary>
+
+```bash
 pnpm install
-
-# 2. Configure (the defaults work offline, no API key needed)
 cp .env.example apps/server/.env
-cp .env.example apps/web/.env   # only VITE_API_URL is read here
-
-# 3. Create the database + demo data
-pnpm db:push
-pnpm seed
-
-# 4. Run both server and web
+printf 'VITE_API_URL="http://localhost:3000"\n' > apps/web/.env
+pnpm db:push && pnpm seed
 pnpm dev
 ```
+</details>
 
 - Web: <http://localhost:5173>  ·  Server: <http://localhost:3000>
 - Click **"Try a demo account"** — it's preloaded with relationships, history,
@@ -125,17 +127,114 @@ differently for "boss" vs. "best friend"):
 3. Restart. Free tier (mid-2026) covers `gemini-2.5-flash` / `-flash-lite`;
    429s are retried automatically with exponential backoff.
 
-### Switching to PostgreSQL
+---
 
-SQLite is the default so the project runs from a clean clone with zero external
-setup. For production:
+## Testing
 
-1. In `apps/server/prisma/schema.prisma`, set `provider = "postgresql"`.
-2. Point `DATABASE_URL` at your Postgres instance (e.g. Neon).
-3. `pnpm db:push && pnpm seed`.
+```bash
+make typecheck   # tsc --noEmit across shared, server, web
+make build       # production build of every package
+```
 
-The schema is written cross-compatibly (Json fields, app-layer enum validation)
-so this is a genuinely small change.
+There's also a quick manual smoke test once `make dev` is running:
+
+```bash
+curl localhost:3000/health
+curl -X POST localhost:3000/trpc/decode.run \
+  -H 'content-type: application/json' -d '{"message":"k."}'
+```
+
+### Prod-like local stack (Docker Compose)
+
+Runs the **real production images** — Postgres + API + nginx-served web — exactly
+as they run on k3s. Great for verifying a deploy before shipping it.
+
+```bash
+make compose-up          # builds images, starts the stack
+# → open http://localhost:8080  (nginx serves the SPA and proxies the API)
+make compose-logs
+make compose-down
+```
+
+Config lives in `.env` (copied from `.env.docker.example`). It seeds the demo
+account on first start.
+
+---
+
+## Deploy to Kubernetes (k3s)
+
+Manifests live in [`deploy/k8s/`](deploy/k8s). The architecture is deliberately
+simple: **one ingress → the web service**, whose nginx reverse-proxies `/trpc`
+and `/health` to the API server (so there's no CORS and one public surface).
+Postgres runs in-cluster on a PVC (k3s `local-path`).
+
+```
+        ┌────────────┐      / , /trpc , /health      ┌──────────────┐
+ingress │ subtext-web│ ───────────────────────────▶  │subtext-server│
+(traefik)│  (nginx)  │  nginx proxies API to server   │  (Fastify)   │
+        └────────────┘                                └──────┬───────┘
+                                                             │
+                                                      ┌──────▼───────┐
+                                                      │  subtext-db  │
+                                                      │ (Postgres+PVC)│
+                                                      └──────────────┘
+```
+
+### 1. Build & push images
+
+CI does this automatically — the included GitHub Actions workflow
+(`.github/workflows/build-images.yml`) builds and pushes
+`ghcr.io/<owner>/subtext-server` and `-web` on every push to the default branch.
+
+Or build and push manually:
+
+```bash
+make images push REGISTRY=ghcr.io OWNER=<your-gh-user> TAG=v1
+```
+
+### 2. Configure secrets
+
+```bash
+cd deploy/k8s
+cp secret.example.yaml secret.yaml     # gitignored
+# edit secret.yaml: set SESSION_SECRET (openssl rand -hex 32),
+# a Postgres password (match it in DATABASE_URL), and optionally GEMINI_API_KEY.
+```
+
+Review `config.yaml`: set `WEB_ORIGIN` to your host, flip `GEMINI_MOCK` to `"0"`
+once you've added a real key, and set `COOKIE_SECURE: "true"` if your ingress
+terminates TLS.
+
+### 3. Apply
+
+Point the manifests at your images (replace `OWNER`) and apply:
+
+```bash
+# with kustomize (recommended — sets images in one place):
+kustomize edit set image \
+  ghcr.io/OWNER/subtext-server=ghcr.io/<you>/subtext-server:v1 \
+  ghcr.io/OWNER/subtext-web=ghcr.io/<you>/subtext-web:v1
+kubectl apply -k deploy/k8s
+
+# …or plain kubectl (after editing the image refs in server.yaml / web.yaml):
+kubectl apply -f deploy/k8s
+```
+
+Add a hosts entry (or DNS) for the ingress host, e.g. `subtext.local`, pointing
+at a k3s node, then open it in a browser. The server runs `prisma db push` and
+seeds the demo account on first start.
+
+> **Private GHCR images?** Create a pull secret and reference it:
+> `kubectl -n subtext create secret docker-registry ghcr --docker-server=ghcr.io --docker-username=<you> --docker-password=<token>`,
+> then add `imagePullSecrets: [{name: ghcr}]` to the deployment pod specs.
+
+### About the database
+
+SQLite is the default for **local dev** (zero setup). The container images and
+k8s manifests use **PostgreSQL** — the Dockerfile flips the Prisma provider via
+`--build-arg DATABASE_PROVIDER=postgresql`. The schema is written
+cross-compatibly (Json fields, app-layer enum validation) so the switch is
+genuinely small.
 
 ---
 

@@ -1,0 +1,29 @@
+# k3s ships Traefik as the default ingress controller.
+# Everything (SPA + /trpc + /health) goes to the web service, whose nginx
+# reverse-proxies the API to subtext-server. Change the host to your own.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: subtext
+  namespace: subtext
+  annotations:
+    # For TLS via cert-manager, uncomment and set your issuer, then flip
+    # COOKIE_SECURE=true in the ConfigMap.
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    spec.ingressClassName: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: subtext.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: subtext-web
+                port:
+                  number: 80
+  # tls:
+  #   - hosts: [subtext.local]
+  #     secretName: subtext-tls

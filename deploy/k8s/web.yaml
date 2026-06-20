@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtext-web
+  namespace: subtext
+  labels: { app: subtext-web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: subtext-web }
+  template:
+    metadata:
+      labels: { app: subtext-web }
+    spec:
+      containers:
+        - name: web
+          # Replace OWNER with your registry/user (e.g. ghcr.io/zsigisti).
+          image: ghcr.io/OWNER/subtext-web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            # nginx reverse-proxies /trpc + /health to this upstream.
+            - name: SERVER_UPSTREAM
+              value: "subtext-server:3000"
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: "50m", memory: "32Mi" }
+            limits: { memory: "128Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subtext-web
+  namespace: subtext
+spec:
+  selector: { app: subtext-web }
+  ports:
+    - port: 80
+      targetPort: 80

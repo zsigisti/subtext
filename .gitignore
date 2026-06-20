@@ -19,3 +19,7 @@ apps/web/dist/
 # Editor
 .vscode/
 .idea/
+
+# Docker compose env + real k8s secret (keep the .example files)
+/.env
+deploy/k8s/secret.yaml

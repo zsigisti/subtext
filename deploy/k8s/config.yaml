@@ -1,0 +1,18 @@
+# Non-secret app configuration.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subtext-config
+  namespace: subtext
+data:
+  GEMINI_MODEL: "gemini-2.5-flash"
+  # "1" = offline canned responses. Set "0" once GEMINI_API_KEY is real.
+  GEMINI_MOCK: "1"
+  # The public URL the browser loads the app from (used for CORS).
+  WEB_ORIGIN: "http://subtext.local"
+  # Set "true" only when the ingress terminates TLS (https).
+  COOKIE_SECURE: "false"
+  # Seed the demo account the first time the server starts.
+  SEED_ON_START: "true"
+  PORT: "3000"
+  NODE_ENV: "production"
