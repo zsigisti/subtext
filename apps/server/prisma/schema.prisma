@@ -1,0 +1,117 @@
+// Subtext data model.
+//
+// Datasource defaults to SQLite for zero-setup local demos.
+// To switch to PostgreSQL: change `provider` to "postgresql" and point
+// DATABASE_URL at your Postgres instance. The schema is written to be
+// cross-compatible — Json fields and String-validated enums (validated by
+// Zod at the application boundary) avoid Postgres-only features.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+
+  sessions      Session[]
+  profile       CommunicationProfile?
+  relationships Relationship[]
+  decodeEntries DecodeEntry[]
+  composeEntries ComposeEntry[]
+  savedPhrases  SavedPhrase[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CommunicationProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Json: array of self-identified trait strings.
+  selfTraits Json
+  goals      String @default("")
+  // Json: ReadingPrefs object.
+  readingPrefs Json
+
+  updatedAt DateTime @updatedAt
+}
+
+model Relationship {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  who       String
+  // Validated against the Formality enum (CASUAL|NEUTRAL|FORMAL) via Zod.
+  formality String @default("NEUTRAL")
+  notes     String @default("")
+  createdAt DateTime @default(now())
+
+  decodeEntries  DecodeEntry[]
+  composeEntries ComposeEntry[]
+
+  @@index([userId])
+}
+
+// Created ONLY when the user explicitly saves (privacy: process-and-discard).
+model DecodeEntry {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  inputText String
+  // Json: DecodeResult object.
+  result    Json
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ComposeEntry {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  intentText    String
+  chosenVariant String
+  // Json: ComposeResult object.
+  result        Json
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SavedPhrase {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  text      String
+  context   String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

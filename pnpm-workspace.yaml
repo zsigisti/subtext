@@ -1,0 +1,17 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+allowBuilds:
+  '@prisma/client': set this to true or false
+
+# Allow these trusted packages to run install scripts (native engines / builds).
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - prisma
+
+strictDepBuilds: false
+
+verifyDepsBeforeRun: false

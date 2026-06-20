@@ -1,0 +1,22 @@
+{
+  "name": "subtext",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Subtext — Read between the lines. Say what you mean. A bidirectional communication translator built around the double-empathy problem.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @subtext/server --filter @subtext/web dev",
+    "dev:server": "pnpm --filter @subtext/server dev",
+    "dev:web": "pnpm --filter @subtext/web dev",
+    "build": "pnpm --filter @subtext/shared build && pnpm --filter @subtext/server build && pnpm --filter @subtext/web build",
+    "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm --filter @subtext/server db:push",
+    "db:generate": "pnpm --filter @subtext/server db:generate",
+    "seed": "pnpm --filter @subtext/server seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
